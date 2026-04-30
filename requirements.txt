@@ -1,0 +1,15 @@
+# ── Core Qiskit ─────────────────────────────────
+qiskit>=2.4
+qiskit-ibm-runtime>=0.46
+qiskit-algorithms>=0.4
+qiskit-nature[pyscf]>=0.7
+
+# ── Visualisation ───────────────────────────────
+matplotlib>=3.8
+
+# ── Utilitaires ─────────────────────────────────
+python-dotenv>=1.0
+scipy>=1.10
+
+# ── Tests ───────────────────────────────────────
+pytest>=8.0

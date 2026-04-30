@@ -1,0 +1,73 @@
+# ============================================================
+# CD Pipeline — VQE H₂ sur processeur quantique IBM réel
+# ============================================================
+# Déclenché MANUELLEMENT via workflow_dispatch.
+# Exécute le VQE sur un vrai QPU IBM Quantum.
+# ⚠️ Consomme votre quota IBM (10 min / 28 jours Open Plan).
+# ============================================================
+
+name: "⚛️ Run VQE — IBM Quantum Hardware"
+
+on:
+  workflow_dispatch:
+    inputs:
+      backend:
+        description: "Backend IBM Quantum (vide = auto-select le moins chargé)"
+        required: false
+        default: ""
+        type: string
+      max_iterations:
+        description: "Nombre max d'itérations VQE"
+        required: false
+        default: "50"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  quantum-run:
+    name: "⚛️ VQE sur QPU IBM"
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run VQE on IBM Quantum
+        env:
+          IBM_QUANTUM_TOKEN: ${{ vars.IBM_QUANTUM_TOKEN }}
+          VQE_BACKEND: ${{ github.event.inputs.backend }}
+          VQE_MAX_ITERATIONS: ${{ github.event.inputs.max_iterations }}
+        run: python run_vqe_cloud.py
+
+      - name: Generate convergence plot (cloud results)
+        run: |
+          # Copier les résultats cloud vers le nom attendu par plot_results.py
+          if [ -f results/vqe_cloud_convergence.csv ]; then
+            cp results/vqe_cloud_convergence.csv results/vqe_convergence.csv
+            cp results/vqe_cloud_summary.json results/vqe_summary.json
+            python plot_results.py
+            mv results/vqe_convergence.png results/vqe_cloud_convergence.png
+          fi
+
+      - name: Upload quantum results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vqe-quantum-results
+          path: |
+            results/vqe_cloud_convergence.csv
+            results/vqe_cloud_summary.json
+            results/vqe_cloud_convergence.png

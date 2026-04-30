@@ -1,0 +1,102 @@
+# ============================================================
+# CI Pipeline — VQE H₂ (Tests sur simulateur local)
+# ============================================================
+# Déclenché automatiquement sur push/PR vers main.
+# Exécute les tests unitaires sur simulateur (pas de hardware IBM).
+# ============================================================
+
+name: "🔬 CI — Tests VQE Simulateur"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # ─── Lint Python ───────────────────────────────────────────
+  lint:
+    name: "🔍 Lint Python"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check syntax
+        run: |
+          python -m py_compile run_vqe.py
+          python -m py_compile run_vqe_cloud.py
+          python -m py_compile plot_results.py
+
+  # ─── Tests unitaires ──────────────────────────────────────
+  test:
+    name: "🧪 Tests Unitaires"
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: |
+          pytest tests/ -v --tb=short --junitxml=results/test-results.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: results/test-results.xml
+
+  # ─── Simulation locale + Plot ─────────────────────────────
+  simulate:
+    name: "🚀 Simulation VQE (local)"
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run VQE simulation
+        run: python run_vqe.py
+
+      - name: Generate convergence plot
+        run: python plot_results.py
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: vqe-simulation-results
+          path: |
+            results/vqe_convergence.csv
+            results/vqe_summary.json
+            results/vqe_convergence.png

@@ -24,14 +24,14 @@ import numpy as np
 from pathlib import Path
 from datetime import datetime
 
-# ─── Chargement de la clé API (optionnel) ────────────────────
+#  Chargement de la clé API (optionnel) 
 try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
     pass
 
-# ─── Imports Qiskit ──────────────────────────────────────────
+#  Imports Qiskit 
 from qiskit.primitives import StatevectorEstimator
 from qiskit.circuit.library import TwoLocal
 
@@ -44,9 +44,9 @@ from qiskit_algorithms import VQE, NumPyMinimumEigensolver
 from qiskit_algorithms.optimizers import COBYLA
 
 
-# ═══════════════════════════════════════════════════════════════
+# 
 # Configuration
-# ═══════════════════════════════════════════════════════════════
+# 
 
 # Paramètres de la molécule H₂
 H2_ATOM_STRING = "H 0.0 0.0 0.0; H 0.0 0.0 0.735"  # distance en Ångström
@@ -62,9 +62,9 @@ OPTIMIZER_NAME = "COBYLA"
 RESULTS_DIR = Path(__file__).parent / "results"
 
 
-# ═══════════════════════════════════════════════════════════════
+# 
 # Callback pour suivre la convergence
-# ═══════════════════════════════════════════════════════════════
+# 
 
 class VQEConvergenceTracker:
     """Suit l'évolution de l'énergie à chaque itération du VQE."""
@@ -93,14 +93,14 @@ class VQEConvergenceTracker:
             print(f"  ⚡ Itération {eval_count:>4d}  |  Énergie = {mean:>12.8f} Ha")
 
 
-# ═══════════════════════════════════════════════════════════════
+# 
 # Fonctions principales
-# ═══════════════════════════════════════════════════════════════
+# 
 
 def define_molecule():
     """Définit la molécule H₂ et retourne le problème électronique."""
 
-    print("\n🧬 Étape 1 : Définition de la molécule H₂")
+    print("\n[INIT] Étape 1 : Définition de la molécule H₂")
     print(f"   Géométrie  : {H2_ATOM_STRING}")
     print(f"   Base        : {H2_BASIS}")
     print(f"   Charge      : {H2_CHARGE}")
@@ -115,7 +115,7 @@ def define_molecule():
 
     problem = driver.run()
 
-    print(f"   ✅ Problème électronique créé")
+    print(f"   [SUCCESS] Problème électronique créé")
     print(f"   Nombre de particules : {problem.num_particles}")
     print(f"   Nombre d'orbitales spatiales : {problem.num_spatial_orbitals}")
 
@@ -125,7 +125,7 @@ def define_molecule():
 def map_to_qubit_operator(problem):
     """Mappe l'Hamiltonien fermionique vers un opérateur qubit."""
 
-    print("\n🔄 Étape 2 : Mapping Jordan-Wigner")
+    print("\n[UPDATE] Étape 2 : Mapping Jordan-Wigner")
 
     mapper = JordanWignerMapper()
 
@@ -136,7 +136,7 @@ def map_to_qubit_operator(problem):
     # Mapper vers les qubits
     qubit_op = mapper.map(hamiltonian)
     print(f"   Opérateur qubit (SparsePauliOp) : {qubit_op.num_qubits} qubits, {len(qubit_op)} termes")
-    print(f"   ✅ Mapping terminé")
+    print(f"   [SUCCESS] Mapping terminé")
 
     return qubit_op, mapper
 
@@ -158,7 +158,7 @@ def compute_exact_energy(qubit_op):
 def run_vqe_simulation(qubit_op):
     """Exécute l'algorithme VQE sur simulateur local."""
 
-    print(f"\n🚀 Étape 4 : Exécution du VQE")
+    print(f"\n[START] Étape 4 : Exécution du VQE")
     print(f"   Optimiseur   : {OPTIMIZER_NAME}")
     print(f"   Max itérations: {MAX_ITERATIONS}")
 
@@ -196,7 +196,7 @@ def run_vqe_simulation(qubit_op):
         initial_point=initial_point,
     )
 
-    print(f"\n   ⏳ Optimisation en cours...\n")
+    print(f"\n   [WAIT] Optimisation en cours...\n")
     start_time = time.time()
 
     result = vqe.compute_minimum_eigenvalue(qubit_op)
@@ -204,7 +204,7 @@ def run_vqe_simulation(qubit_op):
     elapsed = time.time() - start_time
 
     vqe_energy = result.eigenvalue.real
-    print(f"\n   ✅ VQE terminé en {elapsed:.2f}s")
+    print(f"\n   [SUCCESS] VQE terminé en {elapsed:.2f}s")
     print(f"   Énergie VQE = {vqe_energy:.10f} Ha")
     print(f"   Évaluations  = {tracker.eval_count}")
 
@@ -214,7 +214,7 @@ def run_vqe_simulation(qubit_op):
 def save_results(tracker, vqe_result, exact_energy, elapsed_time):
     """Sauvegarde les résultats en CSV et JSON."""
 
-    print(f"\n💾 Étape 5 : Sauvegarde des résultats")
+    print(f"\n[SAVE] Étape 5 : Sauvegarde des résultats")
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -266,35 +266,35 @@ def save_results(tracker, vqe_result, exact_energy, elapsed_time):
 def print_summary(summary):
     """Affiche un résumé final en console."""
 
-    chem_accuracy = "✅ OUI" if summary["chemical_accuracy_reached"] else "❌ NON"
+    chem_accuracy = "[SUCCESS] OUI" if summary["chemical_accuracy_reached"] else "[ERROR] NON"
 
     print("\n")
-    print("╔══════════════════════════════════════════════════════════╗")
-    print("║             🔬 RÉSULTATS VQE — H₂                      ║")
-    print("╠══════════════════════════════════════════════════════════╣")
-    print(f"║  Énergie VQE    : {summary['vqe_energy_hartree']:>14.10f} Ha          ║")
-    print(f"║  Énergie exacte : {summary['exact_energy_hartree']:>14.10f} Ha          ║")
-    print(f"║  Erreur absolue : {summary['absolute_error_hartree']:>14.10f} Ha          ║")
-    print(f"║  Précision chimique (< 1.6 mHa) : {chem_accuracy}              ║")
-    print(f"║  Évaluations    : {summary['total_evaluations']:>6d}                          ║")
-    print(f"║  Temps          : {summary['elapsed_seconds']:>8.2f} s                        ║")
-    print("╠══════════════════════════════════════════════════════════╣")
-    print("║  📄 results/vqe_convergence.csv                        ║")
-    print("║  📄 results/vqe_summary.json                           ║")
-    print("║                                                          ║")
-    print("║  ➡️  Lancez `python plot_results.py` pour le graphique  ║")
-    print("╚══════════════════════════════════════════════════════════╝")
+    print("")
+    print("             [SCIENCE] RÉSULTATS VQE — H₂                      ")
+    print("")
+    print(f"  Énergie VQE    : {summary['vqe_energy_hartree']:>14.10f} Ha          ")
+    print(f"  Énergie exacte : {summary['exact_energy_hartree']:>14.10f} Ha          ")
+    print(f"  Erreur absolue : {summary['absolute_error_hartree']:>14.10f} Ha          ")
+    print(f"  Précision chimique (< 1.6 mHa) : {chem_accuracy}              ")
+    print(f"  Évaluations    : {summary['total_evaluations']:>6d}                          ")
+    print(f"  Temps          : {summary['elapsed_seconds']:>8.2f} s                        ")
+    print("")
+    print("  📄 results/vqe_convergence.csv                        ")
+    print("  📄 results/vqe_summary.json                           ")
+    print("                                                          ")
+    print("  ➡️  Lancez `python plot_results.py` pour le graphique  ")
+    print("")
 
 
-# ═══════════════════════════════════════════════════════════════
+# 
 # Point d'entrée
-# ═══════════════════════════════════════════════════════════════
+# 
 
 def main():
-    print("╔══════════════════════════════════════════════════════════╗")
-    print("║       🔬 VQE — Simulation de la molécule H₂            ║")
-    print("║       Boussaiah Younes · INPT · Cloud & IoT             ║")
-    print("╚══════════════════════════════════════════════════════════╝")
+    print("")
+    print("       [SCIENCE] VQE — Simulation de la molécule H₂            ")
+    print("       Boussaiah Younes · INPT · Cloud & IoT             ")
+    print("")
 
     # Vérification clé API (informative seulement)
     token = os.getenv("IBM_QUANTUM_TOKEN")

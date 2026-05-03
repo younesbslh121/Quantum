@@ -35,7 +35,7 @@ TEXT_COLOR = "#E8E8F0"
 
 def load_data():
     if not CSV_PATH.exists():
-        print(f"❌ Fichier introuvable : {CSV_PATH}")
+        print(f"[ERROR] Fichier introuvable : {CSV_PATH}")
         sys.exit(1)
 
     data = defaultdict(lambda: {"iterations": [], "energies": []})
@@ -115,12 +115,12 @@ def create_plot(data, summary):
     return fig
 
 def main():
-    print("📊 Visualisation de la comparaison d'optimiseurs")
+    print("[PLOT] Visualisation de la comparaison d'optimiseurs")
     data, summary = load_data()
     fig = create_plot(data, summary)
     fig.savefig(OUTPUT_PATH, dpi=300, bbox_inches="tight", facecolor=fig.get_facecolor(), edgecolor="none")
     plt.close(fig)
-    print(f"✅ Graphique sauvegardé : {OUTPUT_PATH}")
+    print(f"[SUCCESS] Graphique sauvegardé : {OUTPUT_PATH}")
 
 if __name__ == "__main__":
     main()

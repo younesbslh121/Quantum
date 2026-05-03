@@ -20,14 +20,14 @@ from pathlib import Path
 from datetime import datetime
 from scipy.optimize import minimize
 
-# ─── Chargement de la clé API ────────────────────────────────
+#  Chargement de la clé API 
 try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
     pass
 
-# ─── Imports Qiskit ──────────────────────────────────────────
+#  Imports Qiskit 
 from qiskit.circuit.library import TwoLocal
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
@@ -43,9 +43,9 @@ from qiskit_ibm_runtime import QiskitRuntimeService, Session
 from qiskit_ibm_runtime import EstimatorV2 as Estimator
 
 
-# ═══════════════════════════════════════════════════════════════
+# 
 # Configuration
-# ═══════════════════════════════════════════════════════════════
+# 
 
 # Molécule H₂
 H2_ATOM_STRING = "H 0.0 0.0 0.0; H 0.0 0.0 0.735"
@@ -61,18 +61,18 @@ BACKEND_NAME = os.getenv("VQE_BACKEND", "")  # Vide = least_busy
 RESULTS_DIR = Path(__file__).parent / "results"
 
 
-# ═══════════════════════════════════════════════════════════════
+# 
 # Connexion IBM Quantum
-# ═══════════════════════════════════════════════════════════════
+# 
 
 def connect_ibm_quantum():
     """Se connecte à IBM Quantum et sélectionne un backend."""
 
-    print("\n🔗 Étape 0 : Connexion à IBM Quantum Platform")
+    print("\n[CONNECT] Étape 0 : Connexion à IBM Quantum Platform")
 
     token = os.getenv("IBM_QUANTUM_TOKEN")
     if not token:
-        print("   ❌ IBM_QUANTUM_TOKEN non défini !")
+        print("   [ERROR] IBM_QUANTUM_TOKEN non défini !")
         print("   Ajoutez-le dans .env ou en variable d'environnement.")
         sys.exit(1)
 
@@ -80,7 +80,7 @@ def connect_ibm_quantum():
 
     # Connexion au service
     service = QiskitRuntimeService(
-        channel="ibm_quantum",
+        channel="ibm_quantum_platform",
         token=token,
     )
 
@@ -92,20 +92,20 @@ def connect_ibm_quantum():
         backend = service.least_busy(operational=True, simulator=False)
         print(f"   🖥️  Backend le moins chargé : {backend.name}")
 
-    print(f"   📊 Qubits : {backend.num_qubits}")
-    print(f"   ✅ Connexion établie")
+    print(f"   [PLOT] Qubits : {backend.num_qubits}")
+    print(f"   [SUCCESS] Connexion établie")
 
     return service, backend
 
 
-# ═══════════════════════════════════════════════════════════════
+# 
 # Définition de la molécule
-# ═══════════════════════════════════════════════════════════════
+# 
 
 def define_molecule():
     """Définit H₂ et retourne l'opérateur qubit."""
 
-    print("\n🧬 Étape 1 : Définition de la molécule H₂")
+    print("\n[INIT] Étape 1 : Définition de la molécule H₂")
 
     driver = PySCFDriver(
         atom=H2_ATOM_STRING, basis=H2_BASIS,
@@ -132,14 +132,14 @@ def define_molecule():
     return qubit_op, exact_energy
 
 
-# ═══════════════════════════════════════════════════════════════
+# 
 # Transpilation pour le QPU
-# ═══════════════════════════════════════════════════════════════
+# 
 
 def prepare_for_hardware(qubit_op, backend):
     """Transpile le circuit ansatz et l'observable pour le QPU cible."""
 
-    print("\n🔧 Étape 2 : Transpilation pour le QPU")
+    print("\n[SETUP] Étape 2 : Transpilation pour le QPU")
 
     # Ansatz léger pour hardware (reps=1 = moins profond)
     ansatz = TwoLocal(
@@ -163,19 +163,19 @@ def prepare_for_hardware(qubit_op, backend):
     # Adapter l'observable au layout du circuit transpilé
     isa_observable = qubit_op.apply_layout(isa_ansatz.layout)
 
-    print(f"   ✅ Circuit et observable prêts pour {backend.name}")
+    print(f"   [SUCCESS] Circuit et observable prêts pour {backend.name}")
 
     return isa_ansatz, isa_observable, ansatz.num_parameters
 
 
-# ═══════════════════════════════════════════════════════════════
+# 
 # Boucle VQE sur hardware
-# ═══════════════════════════════════════════════════════════════
+# 
 
 def run_vqe_on_hardware(backend, isa_ansatz, isa_observable, num_params):
     """Exécute le VQE via EstimatorV2 dans une Session IBM."""
 
-    print(f"\n🚀 Étape 3 : VQE sur {backend.name}")
+    print(f"\n[START] Étape 3 : VQE sur {backend.name}")
     print(f"   Optimiseur : COBYLA")
     print(f"   Max itérations : {MAX_ITERATIONS}")
 
@@ -189,7 +189,8 @@ def run_vqe_on_hardware(backend, isa_ansatz, isa_observable, num_params):
         eval_count[0] += 1
         job = estimator.run([(isa_ansatz, isa_observable, [params])])
         result = job.result()[0]
-        energy = float(result.data.evs)
+        evs_data = result.data.evs
+        energy = float(np.atleast_1d(evs_data)[0])
 
         iterations.append(eval_count[0])
         energies.append(energy)
@@ -202,37 +203,37 @@ def run_vqe_on_hardware(backend, isa_ansatz, isa_observable, num_params):
     # Point initial
     x0 = np.zeros(num_params)
 
-    print(f"\n   ⏳ Optimisation en cours sur le QPU...\n")
+    print(f"\n   [WAIT] Optimisation en cours sur le QPU...\n")
     start_time = time.time()
 
-    # Session IBM : maintient la priorité entre les itérations
-    with Session(backend=backend) as session:
-        estimator = Estimator(session=session)
+    # Le plan gratuit d'IBM ne permet plus d'utiliser 'Session'.
+    # On instancie donc l'Estimator directement avec le backend.
+    estimator = Estimator(mode=backend)
 
-        result = minimize(
-            cost_function,
-            x0=x0,
-            method="COBYLA",
-            options={"maxiter": MAX_ITERATIONS, "disp": False},
-        )
+    result = minimize(
+        cost_function,
+        x0=x0,
+        method="COBYLA",
+        options={"maxiter": MAX_ITERATIONS, "disp": False},
+    )
 
     elapsed = time.time() - start_time
 
-    print(f"\n   ✅ VQE terminé en {elapsed:.2f}s")
+    print(f"\n   [SUCCESS] VQE terminé en {elapsed:.2f}s")
     print(f"   Énergie finale = {result.fun:.10f} Ha")
     print(f"   Évaluations = {eval_count[0]}")
 
     return result, iterations, energies, elapsed
 
 
-# ═══════════════════════════════════════════════════════════════
+# 
 # Sauvegarde des résultats
-# ═══════════════════════════════════════════════════════════════
+# 
 
 def save_results(iterations, energies, opt_result, exact_energy, elapsed, backend_name):
     """Sauvegarde les résultats cloud en CSV et JSON."""
 
-    print(f"\n💾 Étape 4 : Sauvegarde des résultats")
+    print(f"\n[SAVE] Étape 4 : Sauvegarde des résultats")
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -279,15 +280,15 @@ def save_results(iterations, energies, opt_result, exact_energy, elapsed, backen
     return summary
 
 
-# ═══════════════════════════════════════════════════════════════
+# 
 # Point d'entrée
-# ═══════════════════════════════════════════════════════════════
+# 
 
 def main():
-    print("╔══════════════════════════════════════════════════════════╗")
-    print("║    🔬 VQE H₂ — Exécution sur processeur quantique IBM  ║")
-    print("║    Boussaiah Younes · INPT · Cloud & IoT                ║")
-    print("╚══════════════════════════════════════════════════════════╝")
+    print("")
+    print("    [SCIENCE] VQE H₂ — Exécution sur processeur quantique IBM  ")
+    print("    Boussaiah Younes · INPT · Cloud & IoT                ")
+    print("")
 
     # Connexion
     service, backend = connect_ibm_quantum()
@@ -310,19 +311,19 @@ def main():
     )
 
     # Résumé
-    chem = "✅ OUI" if summary["chemical_accuracy_reached"] else "❌ NON"
+    chem = "[SUCCESS] OUI" if summary["chemical_accuracy_reached"] else "[ERROR] NON"
     print("\n")
-    print("╔══════════════════════════════════════════════════════════╗")
-    print("║          🔬 RÉSULTATS VQE CLOUD — H₂                   ║")
-    print("╠══════════════════════════════════════════════════════════╣")
-    print(f"║  Backend        : {summary['backend']:<28s}         ║")
-    print(f"║  Énergie VQE    : {summary['vqe_energy_hartree']:>14.10f} Ha          ║")
-    print(f"║  Énergie exacte : {summary['exact_energy_hartree']:>14.10f} Ha          ║")
-    print(f"║  Erreur absolue : {summary['absolute_error_hartree']:>14.10f} Ha          ║")
-    print(f"║  Précision chimique : {chem}                           ║")
-    print(f"║  Évaluations    : {summary['total_evaluations']:>6d}                          ║")
-    print(f"║  Temps          : {summary['elapsed_seconds']:>8.2f} s                        ║")
-    print("╚══════════════════════════════════════════════════════════╝")
+    print("")
+    print("          [SCIENCE] RÉSULTATS VQE CLOUD — H₂                   ")
+    print("")
+    print(f"  Backend        : {summary['backend']:<28s}         ")
+    print(f"  Énergie VQE    : {summary['vqe_energy_hartree']:>14.10f} Ha          ")
+    print(f"  Énergie exacte : {summary['exact_energy_hartree']:>14.10f} Ha          ")
+    print(f"  Erreur absolue : {summary['absolute_error_hartree']:>14.10f} Ha          ")
+    print(f"  Précision chimique : {chem}                           ")
+    print(f"  Évaluations    : {summary['total_evaluations']:>6d}                          ")
+    print(f"  Temps          : {summary['elapsed_seconds']:>8.2f} s                        ")
+    print("")
 
 
 if __name__ == "__main__":

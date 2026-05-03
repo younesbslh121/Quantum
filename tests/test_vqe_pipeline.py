@@ -14,7 +14,7 @@ import pytest
 import numpy as np
 from pathlib import Path
 
-# ─── Imports du pipeline ─────────────────────────────────────
+#  Imports du pipeline 
 from qiskit.primitives import StatevectorEstimator
 from qiskit.circuit.library import TwoLocal
 
@@ -25,9 +25,9 @@ from qiskit_algorithms import VQE, NumPyMinimumEigensolver
 from qiskit_algorithms.optimizers import COBYLA
 
 
-# ═══════════════════════════════════════════════════════════════
+# 
 # Fixtures
-# ═══════════════════════════════════════════════════════════════
+# 
 
 @pytest.fixture(scope="module")
 def h2_problem():
@@ -65,9 +65,9 @@ def results_dir(tmp_path):
     return d
 
 
-# ═══════════════════════════════════════════════════════════════
+# 
 # Tests
-# ═══════════════════════════════════════════════════════════════
+# 
 
 class TestMoleculeDefinition:
     """Teste la définition de la molécule H₂ via PySCFDriver."""

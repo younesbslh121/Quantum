@@ -3,10 +3,10 @@
 # ============================================================
 # Déclenché MANUELLEMENT via workflow_dispatch.
 # Exécute le VQE sur un vrai QPU IBM Quantum.
-# ⚠️ Consomme votre quota IBM (10 min / 28 jours Open Plan).
+# [WARNING] Consomme votre quota IBM (10 min / 28 jours Open Plan).
 # ============================================================
 
-name: "⚛️ Run VQE — IBM Quantum Hardware"
+name: "[QUANTUM] Run VQE — IBM Quantum Hardware"
 
 on:
   workflow_dispatch:
@@ -27,7 +27,7 @@ permissions:
 
 jobs:
   quantum-run:
-    name: "⚛️ VQE sur QPU IBM"
+    name: "[QUANTUM] VQE sur QPU IBM"
     runs-on: ubuntu-latest
     timeout-minutes: 60
 

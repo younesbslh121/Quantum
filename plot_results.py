@@ -20,14 +20,14 @@ matplotlib.use("Agg")  # Backend non-interactif pour la sauvegarde PNG
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
-# ─── Configuration ──────────────────────────────────────────
+#  Configuration 
 
 RESULTS_DIR = Path(__file__).parent / "results"
 CSV_PATH = RESULTS_DIR / "vqe_convergence.csv"
 JSON_PATH = RESULTS_DIR / "vqe_summary.json"
 OUTPUT_PATH = RESULTS_DIR / "vqe_convergence.png"
 
-# ─── Style ──────────────────────────────────────────────────
+#  Style 
 
 # Couleurs inspirées d'IBM Quantum
 IBM_PURPLE = "#6929C4"
@@ -45,7 +45,7 @@ def load_data():
 
     # Vérification des fichiers
     if not CSV_PATH.exists():
-        print(f"❌ Fichier introuvable : {CSV_PATH}")
+        print(f"[ERROR] Fichier introuvable : {CSV_PATH}")
         print("   Lancez d'abord : python run_vqe.py")
         sys.exit(1)
 
@@ -58,7 +58,7 @@ def load_data():
             iterations.append(int(row["iteration"]))
             energies.append(float(row["energy"]))
 
-    print(f"📊 Données chargées : {len(iterations)} points")
+    print(f"[PLOT] Données chargées : {len(iterations)} points")
 
     # Lecture du JSON (pour l'énergie exacte)
     exact_energy = None
@@ -75,12 +75,12 @@ def load_data():
 def create_convergence_plot(iterations, energies, exact_energy, summary):
     """Crée le graphique de convergence avec un style scientifique premium."""
 
-    # ─── Configuration de la figure ──────────────────────────
+    #  Configuration de la figure 
     fig, ax = plt.subplots(figsize=(12, 7), dpi=100)
     fig.patch.set_facecolor(BG_COLOR)
     ax.set_facecolor(BG_COLOR)
 
-    # ─── Courbe de convergence ───────────────────────────────
+    #  Courbe de convergence 
     ax.plot(
         iterations, energies,
         color=IBM_CYAN,
@@ -112,7 +112,7 @@ def create_convergence_plot(iterations, energies, exact_energy, summary):
             label=f"Énergie finale : {energies[-1]:.6f} Ha",
         )
 
-    # ─── Ligne de l'énergie exacte ───────────────────────────
+    #  Ligne de l'énergie exacte 
     if exact_energy is not None:
         ax.axhline(
             y=exact_energy,
@@ -134,7 +134,7 @@ def create_convergence_plot(iterations, energies, exact_energy, summary):
             label="Précision chimique (±1.6 mHa)",
         )
 
-    # ─── Axes et grille ──────────────────────────────────────
+    #  Axes et grille 
     ax.set_xlabel(
         "Nombre d'évaluations",
         fontsize=14,
@@ -183,7 +183,7 @@ def create_convergence_plot(iterations, energies, exact_energy, summary):
         spine.set_color(GRID_COLOR)
         spine.set_linewidth(0.5)
 
-    # ─── Légende ─────────────────────────────────────────────
+    #  Légende 
     legend = ax.legend(
         loc="upper right",
         fontsize=10,
@@ -193,7 +193,7 @@ def create_convergence_plot(iterations, energies, exact_energy, summary):
         framealpha=0.9,
     )
 
-    # ─── Annotation : erreur finale ─────────────────────────
+    #  Annotation : erreur finale 
     if exact_energy is not None and energies:
         final_error = abs(energies[-1] - exact_energy)
         error_text = f"Δ = {final_error:.2e} Ha"
@@ -219,7 +219,7 @@ def create_convergence_plot(iterations, energies, exact_energy, summary):
             ),
         )
 
-    # ─── Watermark ───────────────────────────────────────────
+    #  Watermark 
     fig.text(
         0.99, 0.01,
         "Boussaiah Younes · INPT · Cloud & IoT",
@@ -230,16 +230,16 @@ def create_convergence_plot(iterations, energies, exact_energy, summary):
         style="italic",
     )
 
-    # ─── Ajustement ──────────────────────────────────────────
+    #  Ajustement 
     plt.tight_layout()
 
     return fig
 
 
 def main():
-    print("╔══════════════════════════════════════════════════════════╗")
-    print("║   📊 VQE H₂ — Visualisation de la convergence          ║")
-    print("╚══════════════════════════════════════════════════════════╝")
+    print("")
+    print("   [PLOT] VQE H₂ — Visualisation de la convergence          ")
+    print("")
     print()
 
     # Charger les données
@@ -259,7 +259,7 @@ def main():
     )
     plt.close(fig)
 
-    print(f"\n✅ Graphique sauvegardé : {OUTPUT_PATH}")
+    print(f"\n[SUCCESS] Graphique sauvegardé : {OUTPUT_PATH}")
     print(f"   Résolution : 300 DPI")
     print(f"   Format     : PNG")
 
